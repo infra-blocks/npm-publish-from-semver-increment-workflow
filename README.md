@@ -1,68 +1,110 @@
-# github-actions-workflow-template
-[![Git Tag Semver From Label](https://github.com/infrastructure-blocks/github-actions-workflow-template/actions/workflows/git-tag-semver-from-label.yml/badge.svg)](https://github.com/infrastructure-blocks/github-actions-workflow-template/actions/workflows/git-tag-semver-from-label.yml)
-[![Trigger Update From Template](https://github.com/infrastructure-blocks/github-actions-workflow-template/actions/workflows/trigger-update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/github-actions-workflow-template/actions/workflows/trigger-update-from-template.yml)
+# npm-publish-from-semver-label-workflow
+[![Git Tag Semver From Label](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/git-tag-semver-from-label.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/git-tag-semver-from-label.yml)
+[![Update From Template](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/update-from-template.yml)
 
-This repository is a template for creating reusable GitHub Actions Workflows. Go through the below checklist
-upon instantiating this template:
-- Remove the [trigger update from template workflow](.github/workflows/trigger-update-from-template.yml)
-- Edit the content of [the placeholder](.github/workflows/workflow.yml) for your reusable workflow.
-- Update the status badges:
-    - Remove the `Trigger Update From Template` status badge.
-    - Add the `Update From Template` status badge.
-    - Rename the rest of the links to point to the right repository.
-- Edit this document and update the relevant sections
+This workflow publishes npm packages based on PR labels. It can be run any events, although some default values
+for inputs only make sense on certain events. See the [usage](#usage) section for recommended set ups.
+
+It starts by retrieving the PR associated with the SHA input. It then delegates to
+[check-has-semver-label-workflow](https://github.com/infrastructure-blocks/check-has-semver-label-workflow). If the
+PR check succeeds and the label associated to the PR is different than "no version", then the following occurs:
+- The workflow dispatches to
+  [npm-publish-prerelease-workflow](https://github.com/infrastructure-blocks/npm-publish-prerelease-workflow) if
+  `prerelease` is set to true
+  - The distribution tags used are `git-sha-<input-sha>` and `gh-pr-<current-pr-number>`
+- The workflow dispatches to [npm-publish-workflow](https://github.com/infrastructure-blocks/npm-publish-workflow) if
+  `prerelease` is set to true
+  - The distribution tags used are `latest`, `git-sha-<input-sha>` and `gh-pr-<current-pr-number>`
+
+The outcome of the release is reported as a
+[status report](https://github.com/infrastructure-blocks/status-report-action).
 
 ## Inputs
 
-|     Name      | Required | Description       |
-|:-------------:|:--------:|-------------------|
-| example-input |   true   | An example input. |
+|    Name    | Required | Description                                                                                                                                                                                                                                                                                                                               |
+|:----------:|:--------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|    sha     |  false   | The commit SHA to tag. Defaults to the ${{ github.sha }}. If the event triggering this workflow is of type pull_request, be sure to set this parameter to either ${{ github.event.pull_request.head.sha }} or ${{ github.event.pull_request.base.sha }}. You probably don't want to tag the PR's default SHA, which is on a merge branch. |
+| prerelease |  false   | Whether the label is to be interpreted as a prerelease or a full release. Defaults to false.                                                                                                                                                                                                                                              |
+|  skip-ci   |  false   | Whether to include `[skip ci]` in the commit created by `npm version` when `prerelease` is false. This is especially useful if using this workflow on a push event with a GitHub PAT, for example. Defaults to false.                                                                                                                     |
 
 ## Secrets
 
-|      Name      | Required | Description        |
-|:--------------:|:--------:|--------------------|
-| example-secret |   true   | An example secret. |
+|     Name     | Required | Description                                                                                                                                                       |
+|:------------:|:--------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| github-token |   true   | The GitHub token used to configure the Git CLI. It should have the rights to push code and tags. When the branch or the tags are protected, this should be a PAT. |
+|  npm-token   |   true   | The NPM token used to publish the package.                                                                                                                        |
 
 ## Outputs
 
-|      Name      | Description        |
-|:--------------:|--------------------|
-| example-output | An example output. |
+N/A
 
 ## Permissions
 
-|     Scope     | Level | Reason   |
-|:-------------:|:-----:|----------|
-| pull-requests | read  | Because. |
+|     Scope     | Level | Reason                                                                                                   |
+|:-------------:|:-----:|----------------------------------------------------------------------------------------------------------|
+|   contents    | write | Required to push code when `prerelease` is false and the `github-token` provided is ${{ github.token }}. |
+| pull-requests | write | Required to post comments about the status of this workflow.                                             |
 
 ## Concurrency controls
 
-Describe concurrency controls of the workflow.
+N/A
 
 ## Timeouts
 
-Describe the timeouts configured, if any.
+N/A
 
 ## Usage
 
+### Prerelease
+
 ```yaml
-name: Template Usage
+name: NPM Publish Prerelease From Label
 
 on:
-  push: ~
-
-# This needs to be a superset of what your workflow requires
-permissions:
-  pull-requests: read
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
 
 jobs:
-  example-job:
-    uses: infrastructure-blocks/github-actions-workflow-template/.github/workflows/workflow.yml@v1
+  npm-publish-prerelease:
+    uses: infrastructure-blocks/npm-publish-from-semver-label-workflow/.github/workflows/workflow.yml@v3
+    permissions:
+      contents: write
+      pull-requests: write
     with:
-      example-input: Nobody cares
+      sha: ${{ github.event.pull_request.head.sha }}
+      prerelease: true
     secrets:
-      example-secret: ${{ secrets.EXAMPLE }}
+      # Should use the default token here, since we are not pushing anything.
+      github-token: ${{ github.token }}
+      npm-token: ${{ secrets.NPM_PUBLISH_TOKEN }}
+```
+
+### Release
+
+```yaml
+name: NPM Publish Release From Label
+
+on:
+  push:
+    branches:
+      - <you-release-branch>
+
+jobs:
+  npm-publish-release:
+    uses: infrastructure-blocks/npm-publish-from-semver-label-workflow/.github/workflows/workflow.yml@v3
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      skip-ci: true
+    secrets:
+      github-token: ${{ secrets.PAT }}
+      npm-token: ${{ secrets.NPM_PUBLISH_TOKEN }}
 ```
 
 ### Releasing
