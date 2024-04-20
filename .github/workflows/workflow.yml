@@ -1,14 +1,14 @@
-name: NPM Publish From Semver Label
+name: NPM Publish From Semver Increment
 
 on:
   workflow_call:
     inputs:
       prerelease:
         type: boolean
-        description: Whether the label is to be interpreted as a prerelease or a full release.
+        description: Whether the semver increment is to be interpreted as a prerelease or a full release.
         required: false
         default: false
-      label:
+      semver-increment:
         type: string
         description: |
           The semver label applied to the PR.
@@ -38,11 +38,10 @@ permissions:
   pull-requests: write
 
 env:
-  status-report-action-repository: infrastructure-blocks/npm-publish-from-semver-label-workflow
+  status-report-action-repository: infrastructure-blocks/npm-publish-from-semver-increment-workflow
 
 jobs:
   variables:
-    if: ${{ !inputs.skip }}
     runs-on: ubuntu-22.04
     outputs:
       sha: ${{ steps.infer-sha.outputs.sha }}
@@ -73,9 +72,9 @@ jobs:
     permissions:
       contents: write
     with:
-      version: ${{ inputs.label }}
+      version: ${{ inputs.semver-increment }}
       dist-tags: '["latest", "git-sha-${{ needs.variables.outputs.sha }}", "gh-pr-${{ needs.variables.outputs.issue-number }}"]'
-      skip: ${{ inputs.skip || inputs.label == 'no version' || inputs.prerelease }}
+      skip: ${{ inputs.skip || inputs.prerelease }}
       skip-ci: ${{ inputs.skip-ci }}
     secrets:
       github-token: ${{ secrets.github-token }}
@@ -106,7 +105,7 @@ jobs:
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
-            :boom: **Error**: Unable to publish NPM release package with version bump {{ inputs.label }}
+            :boom: **Error**: Unable to publish NPM release package with version bump {{ inputs.semver-increment }}
             See [action logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # Prerelease workflow.
@@ -117,9 +116,9 @@ jobs:
     permissions:
       contents: read
     with:
-      type: "pre${{ inputs.label }}"
+      type: "pre${{ inputs.semver-increment }}"
       dist-tags: '["git-sha-${{ needs.variables.outputs.sha }}", "gh-pr-${{ needs.variables.outputs.issue-number }}"]'
-      skip: ${{ inputs.label == 'no version' || !inputs.prerelease }}
+      skip: ${{ inputs.skip || !inputs.prerelease }}
     secrets:
       npm-token: ${{ secrets.npm-token }}
   post-prerelease-comment:
@@ -146,5 +145,5 @@ jobs:
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
-            :boom: **Error**: Unable to publish NPM prerelease package with version bump {{ inputs.label }}
+            :boom: **Error**: Unable to publish NPM prerelease package with version bump pre{{ inputs.semver-increment }}
             See [action logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
