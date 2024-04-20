@@ -1,32 +1,32 @@
-# npm-publish-from-semver-label-workflow
-[![Git Tag Semver From Label](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/git-tag-semver-from-label.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/git-tag-semver-from-label.yml)
-[![Update From Template](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-label-workflow/actions/workflows/update-from-template.yml)
+# npm-publish-from-semver-increment-workflow
+[![Git Tag Semver From Label](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/git-tag-semver-from-label.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/git-tag-semver-from-label.yml)
+[![Update From Template](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml)
 
-This workflow publishes npm packages based on PR labels. It can be run any events, although some default values
-for inputs only make sense on certain events. See the [usage](#usage) section for recommended set ups.
+This workflow publishes npm packages based on a semver increment. It is meant to be used in conjunction with the
+[check-has-semver-label-workflow](https://github.com/infrastructure-blocks/check-has-semver-label-workflow).
 
-It starts by retrieving the PR associated with the SHA input. It then delegates to
-[check-has-semver-label-workflow](https://github.com/infrastructure-blocks/check-has-semver-label-workflow). If the
-PR check succeeds and the label associated to the PR is different than "no version", then the following occurs:
 - The workflow dispatches to
-  [npm-publish-prerelease-workflow](https://github.com/infrastructure-blocks/npm-publish-prerelease-workflow) if
-  `prerelease` is set to true
-  - The distribution tags used are `git-sha-<input-sha>` and `gh-pr-<current-pr-number>`
+[npm-publish-prerelease-workflow](https://github.com/infrastructure-blocks/npm-publish-prerelease-workflow) if
+`prerelease` is set to true.
+  - The distribution tags used for pre releases are `git-sha-<sha>` and `gh-pr-<current-pr-number>`.  
 - The workflow dispatches to [npm-publish-workflow](https://github.com/infrastructure-blocks/npm-publish-workflow) if
-  `prerelease` is set to true
-  - The distribution tags used are `latest`, `git-sha-<input-sha>` and `gh-pr-<current-pr-number>`
+`prerelease` is set to false.
+  - The distribution tags used for releases are `latest`, `git-sha-<sha>` and `gh-pr-<current-pr-number>`.
+- The git SHA is taken from the `github.even.pull_request.head.sha` if the event triggering this workflow is of type
+`pull_request`. Otherwise, it defaults to the `github.sha`. We expect pre release flows to be triggered by PRs and
+release flows to be triggered by pushes.
 
-The outcome of the release is reported as a
+The outcome of the publication is reported as a
 [status report](https://github.com/infrastructure-blocks/status-report-action).
 
 ## Inputs
 
-|    Name    | Required | Description                                                                                                                                                                                                                                                                                                                               |
-|:----------:|:--------:|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|    sha     |  false   | The commit SHA to tag. Defaults to the ${{ github.sha }}. If the event triggering this workflow is of type pull_request, be sure to set this parameter to either ${{ github.event.pull_request.head.sha }} or ${{ github.event.pull_request.base.sha }}. You probably don't want to tag the PR's default SHA, which is on a merge branch. |
-| prerelease |  false   | Whether the label is to be interpreted as a prerelease or a full release. Defaults to false.                                                                                                                                                                                                                                              |
-|    skip    |  false   | A boolean indicating whether to skip the workflow. This is to workaround the required checks discrepancy when the workflow is skipped from the caller. It defaults to false.                                                                                                                                                              |
-|  skip-ci   |  false   | Whether to include `[skip ci]` in the commit created by `npm version` when `prerelease` is false. This is especially useful if using this workflow on a push event with a GitHub PAT, for example. Defaults to false.                                                                                                                     |
+|       Name       | Required | Description                                                                                                                                                                                                                                                |
+|:----------------:|:--------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|    prerelease    |  false   | Whether the label is to be interpreted as a prerelease or a full release. Defaults to false.                                                                                                                                                               |
+| semver-increment |   true   | The semver increment that indicates which release version will be produced. Should be one of "major", "minor" or "patch". When `prerelease` is `true`, the actual semver increment will be `pre<semver-increment`. So `premajor` for `major`, for example. |
+|       skip       |  false   | A boolean indicating whether to skip the workflow. This is to workaround the required checks discrepancy when the workflow is skipped from the caller. It defaults to false.                                                                               |
+|     skip-ci      |  false   | Whether to include `[skip ci]` in the commit created by `npm version` when `prerelease` is false. This is especially useful if using this workflow on a push event with a GitHub PAT, for example. Defaults to false.                                      |
 
 ## Secrets
 
@@ -59,7 +59,7 @@ N/A
 ### Prerelease
 
 ```yaml
-name: NPM Publish Prerelease From Label
+name: PR Checks
 
 on:
   pull_request:
@@ -71,14 +71,21 @@ on:
       - unlabeled
 
 jobs:
+  check-has-semver-label:
+    permissions:
+      pull-requests: write
+    uses: infrastructure-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
   npm-publish-prerelease:
-    uses: infrastructure-blocks/npm-publish-from-semver-label-workflow/.github/workflows/workflow.yml@v3
+    needs:
+      - check-has-semver-label
+    uses: infrastructure-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
     permissions:
       contents: write
       pull-requests: write
     with:
-      sha: ${{ github.event.pull_request.head.sha }}
       prerelease: true
+      semver-increment: ${{ needs.check-has-semver-label.outputs.matched-label }}
+      skip: ${{ needs.check-has-semver-label.outputs.matched-label == 'no version' }}
     secrets:
       # Should use the default token here, since we are not pushing anything.
       github-token: ${{ github.token }}
@@ -93,15 +100,23 @@ name: NPM Publish Release From Label
 on:
   push:
     branches:
-      - <you-release-branch>
+      - master
 
 jobs:
+  check-has-semver-label:
+    permissions:
+      pull-requests: write
+    uses: infrastructure-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
   npm-publish-release:
-    uses: infrastructure-blocks/npm-publish-from-semver-label-workflow/.github/workflows/workflow.yml@v3
+    needs:
+      - check-has-semver-label
+    uses: infrastructure-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
     permissions:
       contents: write
       pull-requests: write
     with:
+      semver-increment: ${{ needs.check-has-semver-label.outputs.matched-label }}
+      skip: ${{ needs.check-has-semver-label.outputs.matched-label == 'no version' }}
       skip-ci: true
     secrets:
       github-token: ${{ secrets.PAT }}
