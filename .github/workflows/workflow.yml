@@ -41,14 +41,27 @@ env:
   status-report-action-repository: infrastructure-blocks/npm-publish-from-semver-increment-workflow
 
 jobs:
+<<<<<<< HEAD
   variables:
+=======
+  example-job:
+>>>>>>> template/master
     runs-on: ubuntu-22.04
     outputs:
       sha: ${{ steps.infer-sha.outputs.sha }}
       issue-number: ${{ steps.current-pr.outputs.number }}
     steps:
+<<<<<<< HEAD
       - uses: actions/checkout@v2
       - id: infer-sha
+=======
+      # This condition should be on every step.
+      - if: ${{ !inputs.skip }}
+        id: example-step
+        name: Example step
+        env:
+          BIG_SECRET: ${{ secrets.example-secret }}
+>>>>>>> template/master
         run: |
           if [ "${{ runner.debug }}" = "1" ]; then
               set -x
