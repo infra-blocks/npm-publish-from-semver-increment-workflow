@@ -1,5 +1,5 @@
 # npm-publish-from-semver-increment-workflow
-[![Git Tag Semver From Label](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/git-tag-semver-from-label.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/git-tag-semver-from-label.yml)
+[![Release](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml)
 [![Update From Template](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml)
 
 This workflow publishes npm packages based on a semver increment. It is meant to be used in conjunction with the
