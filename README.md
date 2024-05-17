@@ -1,15 +1,15 @@
 # npm-publish-from-semver-increment-workflow
-[![Release](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml)
-[![Update From Template](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infrastructure-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml)
+[![Release](https://github.com/infra-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml/badge.svg)](https://github.com/infra-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/release.yml)
+[![Update From Template](https://github.com/infra-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml/badge.svg)](https://github.com/infra-blocks/npm-publish-from-semver-increment-workflow/actions/workflows/update-from-template.yml)
 
 This workflow publishes npm packages based on a semver increment. It is meant to be used in conjunction with the
-[check-has-semver-label-workflow](https://github.com/infrastructure-blocks/check-has-semver-label-workflow).
+[check-has-semver-label-workflow](https://github.com/infra-blocks/check-has-semver-label-workflow).
 
 - The workflow dispatches to
-[npm-publish-prerelease-workflow](https://github.com/infrastructure-blocks/npm-publish-prerelease-workflow) if
+[npm-publish-prerelease-workflow](https://github.com/infra-blocks/npm-publish-prerelease-workflow) if
 `prerelease` is set to true.
   - The distribution tags used for pre releases are `git-sha-<sha>` and `gh-pr-<current-pr-number>`.  
-- The workflow dispatches to [npm-publish-workflow](https://github.com/infrastructure-blocks/npm-publish-workflow) if
+- The workflow dispatches to [npm-publish-workflow](https://github.com/infra-blocks/npm-publish-workflow) if
 `prerelease` is set to false.
   - The distribution tags used for releases are `latest`, `git-sha-<sha>` and `gh-pr-<current-pr-number>`.
 - The git SHA is taken from the `github.even.pull_request.head.sha` if the event triggering this workflow is of type
@@ -17,7 +17,7 @@ This workflow publishes npm packages based on a semver increment. It is meant to
 release flows to be triggered by pushes.
 
 The outcome of the publication is reported as a
-[status report](https://github.com/infrastructure-blocks/status-report-action).
+[status report](https://github.com/infra-blocks/status-report-action).
 
 ## Inputs
 
@@ -74,11 +74,11 @@ jobs:
   check-has-semver-label:
     permissions:
       pull-requests: write
-    uses: infrastructure-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
+    uses: infra-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
   npm-publish-prerelease:
     needs:
       - check-has-semver-label
-    uses: infrastructure-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
+    uses: infra-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
     permissions:
       contents: write
       pull-requests: write
@@ -106,11 +106,11 @@ jobs:
   check-has-semver-label:
     permissions:
       pull-requests: write
-    uses: infrastructure-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
+    uses: infra-blocks/check-has-semver-label-workflow/.github/workflows/workflow.yml@v1
   npm-publish-release:
     needs:
       - check-has-semver-label
-    uses: infrastructure-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
+    uses: infra-blocks/npm-publish-from-semver-increment-workflow/.github/workflows/workflow.yml@v3
     permissions:
       contents: write
       pull-requests: write
@@ -126,4 +126,4 @@ jobs:
 ### Releasing
 
 The releasing is handled at git level with semantic versioning tags. Those are automatically generated and managed
-by the [git-tag-semver-from-label-workflow](https://github.com/infrastructure-blocks/git-tag-semver-from-label-workflow).
+by the [git-tag-semver-from-label-workflow](https://github.com/infra-blocks/git-tag-semver-from-label-workflow).
