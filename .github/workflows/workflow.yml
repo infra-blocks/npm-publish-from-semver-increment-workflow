@@ -38,7 +38,7 @@ permissions:
   pull-requests: write
 
 env:
-  status-report-action-repository: infrastructure-blocks/npm-publish-from-semver-increment-workflow
+  status-report-action-repository: infra-blocks/npm-publish-from-semver-increment-workflow
 
 jobs:
   variables:
@@ -62,13 +62,13 @@ jobs:
           fi
           echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
       - id: current-pr
-        uses: infrastructure-blocks/get-current-pull-request-action@v1
+        uses: infra-blocks/get-current-pull-request-action@v1
 
   # Release workflow.
   npm-publish-release:
     needs:
       - variables
-    uses: infrastructure-blocks/npm-publish-workflow/.github/workflows/workflow.yml@v1
+    uses: infra-blocks/npm-publish-workflow/.github/workflows/workflow.yml@v1
     permissions:
       contents: write
     with:
@@ -89,7 +89,7 @@ jobs:
       pull-requests: write
     steps:
       - if: ${{ needs.npm-publish-release.result == 'success' }}
-        uses: infrastructure-blocks/status-report-action@v1
+        uses: infra-blocks/status-report-action@v1
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
@@ -101,7 +101,7 @@ jobs:
 
             Git tag: [${{ needs.npm-publish-release.outputs.git-tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ needs.npm-publish-release.outputs.git-tag }})
       - if: ${{ needs.npm-publish-release.result == 'failure' }}
-        uses: infrastructure-blocks/status-report-action@v1
+        uses: infra-blocks/status-report-action@v1
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
@@ -112,7 +112,7 @@ jobs:
   npm-publish-prerelease:
     needs:
       - variables
-    uses: infrastructure-blocks/npm-publish-prerelease-workflow/.github/workflows/workflow.yml@v1
+    uses: infra-blocks/npm-publish-prerelease-workflow/.github/workflows/workflow.yml@v1
     permissions:
       contents: read
     with:
@@ -131,7 +131,7 @@ jobs:
       pull-requests: write
     steps:
       - if: ${{ needs.npm-publish-prerelease.result == 'success' }}
-        uses: infrastructure-blocks/status-report-action@v1
+        uses: infra-blocks/status-report-action@v1
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
@@ -141,7 +141,7 @@ jobs:
             - ${{ join(fromJson(needs.npm-publish-prerelease.outputs.links), '
             - ') }}
       - if: ${{ needs.npm-publish-prerelease.result == 'failure' }}
-        uses: infrastructure-blocks/status-report-action@v1
+        uses: infra-blocks/status-report-action@v1
         with:
           issue-number: ${{ needs.variables.outputs.issue-number }}
           body: |
