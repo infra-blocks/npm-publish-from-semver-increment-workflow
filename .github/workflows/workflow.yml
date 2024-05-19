@@ -84,7 +84,7 @@ jobs:
     needs:
       - variables
       - npm-publish-release
-    if: ${{ needs.npm-publish-release.result == 'success' || needs.npm-publish-release.result == 'failure' }}
+    if: ${{ !inputs.skip && !inputs.prerelease && (needs.npm-publish-release.result == 'success' || needs.npm-publish-release.result == 'failure') }}
     permissions:
       pull-requests: write
     steps:
@@ -126,7 +126,7 @@ jobs:
     needs:
       - variables
       - npm-publish-prerelease
-    if: ${{ needs.npm-publish-prerelease.result == 'success' || needs.npm-publish-prerelease.result == 'failure' }}
+    if: ${{ !inputs.skip && inputs.prerelease && (needs.npm-publish-prerelease.result == 'success' || needs.npm-publish-prerelease.result == 'failure') }}
     permissions:
       pull-requests: write
     steps:
